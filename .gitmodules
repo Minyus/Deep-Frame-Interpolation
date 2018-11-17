@@ -1,0 +1,6 @@
+[submodule "./models/pytorch-sepconv"]
+	path = ./models/pytorch-sepconv
+	url = https://github.com/dagf2101/pytorch-sepconv.git
+[submodule "models/pytorch-sepconv"]
+	path = models/pytorch-sepconv
+	url = https://github.com/dagf2101/pytorch-sepconv.git
