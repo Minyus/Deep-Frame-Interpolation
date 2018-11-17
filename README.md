@@ -1,2 +1,2 @@
 # Deep-Frame-Interpolation
-#By Arjun Arora and William Zeng 
+By Arjun Arora and William Zeng 
