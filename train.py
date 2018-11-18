@@ -52,6 +52,7 @@ def trainGAN(epochs,dataloader):
                 imshow(torchvision.utils.make_grid(n_imgs))
                 print("epoch {} out of {}".format(epoch,epochs))
                 print("D_loss:{}, G_loss:{}\n".format(D_loss,G_loss))
+    return Generator,Discriminator
 
 
 
