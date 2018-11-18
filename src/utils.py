@@ -4,21 +4,21 @@ import os
 from skimage.transform import resize
 import skvideo.io
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
-class VideoInterpTripletsDataset(torch.utils.data.Dataset):
-    def __init__(self, dir, height=144, width=256, transform=None):
+class VideoInterpTripletsDataset(Dataset):
+    def __init__(self, directory, height=144, width=256, transform=None):
         """
-        :param dir: directory of videos
+        :param directory: directory of videos
         :param height = pixel height of frame
         :param width = pixel width of frame
         :param transform:
         """
-        self.filenames = [filename for filename in glob.glob(os.path.join(videoDirectory,'*.mp4'))]
+        self.filenames = [filename for filename in glob.glob(os.path.join(directory,'*.mp4'))]
         self.height = height
         self.width = width
-        self.transform = transform
-        self.frames = [int(skvideo.io.ffprobe(f)['video']['@nb_frames']) for f in self.filenames]
+        self.transform = transform # TODO(wizeng): Implement crop, tensor, and resize transforms
+        self.frames = [int(skvideo.io.ffprobe(f)['video']['@nb_frames']) - 2 for f in self.filenames]
         self.total = sum(self.frames)
 
     def __len__(self):
@@ -35,14 +35,20 @@ class VideoInterpTripletsDataset(torch.utils.data.Dataset):
         while self.frames[file] <= index:
             index -= self.frames[file]
             file += 1
-        # if index near end of file, make sure it has enough frames to read
-        index = min(index, self.frames[file] - 3)
-
+        print(self.filenames[file])
+        print(self.total)
+        print(index)
         reader = skvideo.io.vreader(self.filenames[file], inputdict={'--start_number':str(index),'-vframes':str(3)})
-        triplet = [resize(frame, (self.height, self.width)) for frame in reader]
-        triplet = [np.transpose(frame, (2, 1, 0))[None] for frame in triplet] # (1, C, H, W)
-        inframes = np.stack([triplet[0], triplet[2]], axis=-1) # (1, C, H, W, 2)
-        return inframes, triplet[1]
+        triplet = []
+        print('Lol')
+        for frame in reader:
+            print('Hi')
+            triplet.append(resize(frame, (self.height, self.width)))
+        print('poo')
+
+        triplet = [torch.from_numpy(frame.transpose((2, 1, 0))) for frame in triplet] # (C, H, W)
+        print(len(triplet))
+        return {'left': triplet[0], 'right': triplet[2], 'out': triplet[1]}
 
         # totalLen = 0
         # correctFilename = None

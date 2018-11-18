@@ -2,15 +2,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+# TODO: import pre-trained CNNs
 
-class GAN_Generator(torch.nn.Module):
+class GANGenerator(torch.nn.Module):
     def __init__(self, conv_layers_size=0, channels=16):
         '''
         :param conv_layers_size: how many conv layers to add in between
         :input (N, C, H, W, 2)
         :output (N, C, H, W)
         '''
-        super(GAN_Generator, self).__init__()
+        super(GANGenerator, self).__init__()
         self.conv_left_first = nn.Conv2d(3, channels, kernel_size=3, stride=1, padding=1)
         self.conv_right_first = nn.Conv2d(3, channels, kernel_size=3, stride=1, padding=1)
         self.conv_left_list = nn.ModuleList(
@@ -23,11 +24,11 @@ class GAN_Generator(torch.nn.Module):
         self.activation = nn.LeakyReLU()
 
     def forward(self, x):
-        print(x.shape)
-        x_left = self.conv_left_first(x[:,:, :, :,0])
+        x_left, x_right = x
+        x_left = self.conv_left_first(x_left)
         x_left = self.activation(x_left)
 
-        x_right = self.conv_right_first(x[:,:, :, :, 1])
+        x_right = self.conv_right_first(x_right)
         x_right = self.activation(x_right)
         for i in range(len(self.conv_left_list)):
             x_left = self.conv_left_list[i](x_left)
@@ -42,7 +43,7 @@ class GAN_Generator(torch.nn.Module):
         return torch.squeeze(output, dim=-1)
 
 
-class GAN_Discriminator(torch.nn.Module):
+class GANDiscriminator(torch.nn.Module):
     def __init__(self, height=144, width=256, hidden_size=300, channels=16):
         '''
         :param flattened_img_size: size of img when flattened
@@ -50,7 +51,7 @@ class GAN_Discriminator(torch.nn.Module):
         :input (N, C, H, W)
         :output (N)
         '''
-        super(GAN_Discriminator, self).__init__()
+        super(GANDiscriminator, self).__init__()
         self.conv1 = nn.Conv2d(3, channels, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
         self.linear1 = nn.Linear(channels * height * width, hidden_size)

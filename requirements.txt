@@ -1,2 +1,8 @@
+# conda install
 torch==0.4.0
-skvideo.io
+python.app
+
+# pip install
+torchvision
+scikit-video
+scikit-image
