@@ -6,3 +6,4 @@ python.app
 torchvision
 scikit-video
 scikit-image
+opencv-python

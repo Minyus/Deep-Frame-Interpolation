@@ -9,9 +9,9 @@ sys.path.append("./models")
 from models.GAN_model import GANGenerator, GANDiscriminator
 
 def imshow(img):
-    npimg = img.numpy()
+    npimg = img.numpy().transpose((1,2,0))
     #format H,W,C
-    plt.imshow(npimg,(1,2,0))
+    plt.imshow(npimg)
 
 def trainGAN(epochs,dataloader):
     """
@@ -28,6 +28,8 @@ def trainGAN(epochs,dataloader):
 
     for epoch in range(epochs):
         for index, sample in enumerate(dataloader):
+            print(index)
+            #TODO(wizeng): add device = cpu or cuda code
             #inframes  (N,C,H,W,2), outframes (N,C,H,W)
             left, right, outframes = sample['left'], sample['right'], sample['out']
             inframes = (left, right)
@@ -45,9 +47,9 @@ def trainGAN(epochs,dataloader):
             G_loss = train_G(discriminator, G_optimizer, generated_data, criterion)
 
             if index % 100 == 0:
-                N = generated_data.shape[0]
-                n_imgs = generated_data.data
-                imshow(torchvision.utils.make_grid(n_imgs))
+                # N = generated_data.shape[0]
+                # n_imgs = generated_data.data
+                # imshow(torchvision.utils.make_grid(n_imgs))
                 print("epoch {} out of {}".format(epoch,epochs))
                 print("D_loss:{}, G_loss:{}\n".format(D_loss,G_loss))
     return generator, discriminator
