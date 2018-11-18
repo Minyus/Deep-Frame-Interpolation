@@ -40,7 +40,7 @@ class GAN_interpolation_Generator(torch.nn.Module):  # input is N X C X H X W x 
         x_final = self.conv_last_last(x_final)
         output = self.final_layer(torch.unsqueeze(x_first,dim=-1),torch.unsqueeze(x_final,dim=-1))
         #output (N X C X H X W )
-        return torch.squeeze(output)
+        return torch.squeeze(output.dim=-1)
 
 
 class GAN_interpolation_Discriminator(torch.nn.Module):  # input is N X C X H X W
