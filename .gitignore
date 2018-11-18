@@ -2,3 +2,5 @@
 datasets
 *.mp4
 *.zip
+
+models/pytorch-sepconv
