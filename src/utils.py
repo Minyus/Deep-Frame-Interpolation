@@ -48,6 +48,8 @@ class VideoInterpTripletsDataset(Dataset):
         if self.read_frames:
             triplet = [misc.imread('{}/{}-{}.jpg'\
                 .format(self.directory, self.filenames[file], i)) for i in range(index, index + 3)]
+            # triplet = (np.float(triplet)/255.0) * 2.0 - 1
+            triplet = [np.interp(trip,(0,255),(-1.0,1.0)) for trip in triplet]
         else:
             reader = skvideo.io.vreader(self.filenames[file], inputdict={'--start_number':index, '-vframes':'3'})
             # reader = skvideo.io.vreader(self.filenames[file], inputdict={'-vf':'select=gte(n\\,{})'.format(index), '-vframes':'3'})

@@ -10,7 +10,9 @@ sys.path.append("./models")
 from models.GAN_model import GANGenerator, GANDiscriminator
 
 def imshow(img):
-    npimg = img.numpy().astype(np.uint8).transpose((1,2,0))
+    output_image = img.numpy().transpose((1,2,0))
+    npimg = np.interp(output_image,(-1.0,1.0),(0,255.0)).astype(np.uint8)
+    print(np.mean(npimg))
     #format H,W,C
     plt.imshow(npimg)
     plt.show()
@@ -24,15 +26,16 @@ def init_weights(m):
             # print("after: {}".format(param.data[0]))
 
 
-def trainGAN(epochs,dataloader):
+def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
     """
     :param epochs: # of epochs to run for
     :param datasetloader: dataloader of dataset we want to train on
+    :param savePath: path to where to save model
     :return: saved models
     """
 
     discriminator = GANDiscriminator()
-    generator = GANGenerator()
+    generator = GANGenerator(conv_layers_size=5)
     dtype = torch.FloatTensor
 
 
@@ -68,15 +71,23 @@ def trainGAN(epochs,dataloader):
 
             #train generator
             generated_data = generator(inframes)
-            G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
-
+            if not Supervised:
+                G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
+            else:
+                G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
             if index % 100 == 0:
                 N = generated_data.shape[0]
                 n_imgs = generated_data.data.cpu()
                 imshow(torchvision.utils.make_grid(n_imgs))
                 imshow(torchvision.utils.make_grid(outframes.data.cpu()))
                 print("epoch {} out of {}".format(epoch,epochs))
-                print("D_loss:{}, G_loss:{}\n".format(D_loss,G_loss))
+                print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
+                print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
+
+    if savePath is not None:
+        torch.save(generator,savePath + "_Generator")
+        torch.save(discriminator,savePath+"_Discriminator")
+
     return generator, discriminator
 
 
@@ -123,3 +134,26 @@ def train_G(discriminator,optimizer,generated_data,criterion,dtype):
     optimizer.step()
 
     return generated_loss
+def train_GS(discriminator,optimizer,real_data,generated_data,criterion,dtype,epoch):
+    """
+    :param discriminator: generator model
+    :param optimizer: optimizer object
+    :param real_data: for supervised loss (N,C,H,W)
+    :param generated_data: generated frames (N,C,H,W)
+    :param criterion: criterion for loss calc
+    :param epoch: adds to decay term of supervised loss
+    :return: generated loss
+    """
+    N = generated_data.shape[0]
+
+    optimizer.zero_grad()
+
+    output = discriminator(generated_data)
+    generated_loss = criterion(output,torch.ones(N,1).type(dtype))
+    supervised_loss = torch.nn.functional.smooth_l1_loss(generated_data,real_data)
+    # print("generated_loss: {}".format(generated_loss))
+    total_loss = generated_loss + supervised_loss
+    total_loss.backward()
+
+    optimizer.step()
+    return total_loss

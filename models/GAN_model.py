@@ -22,7 +22,7 @@ class GANGenerator(torch.nn.Module):
         self.conv_right_last = nn.Conv2d(channels, 3, kernel_size=3, stride=1, padding=1)
         self.final_layer = torch.nn.Bilinear(1, 1, 1)  # simple bilinear layer to combine first and last frame
         self.activation = nn.LeakyReLU()
-
+        self.final_activation = nn.Tanh()
     def forward(self, x):
         x_left, x_right = x
         x_left = self.conv_left_first(x_left)
@@ -40,7 +40,8 @@ class GANGenerator(torch.nn.Module):
         x_left = self.conv_left_last(x_left)
         x_right = self.conv_right_last(x_right)
         output = self.final_layer(torch.unsqueeze(x_left, dim=-1),torch.unsqueeze(x_right, dim=-1))
-        return torch.squeeze(output, dim=-1)
+        return self.final_activation(torch.squeeze(output, dim=-1))
+        # return torch.squeeze(output,dim=-1)
 
 
 class GANDiscriminator(torch.nn.Module):
@@ -58,13 +59,20 @@ class GANDiscriminator(torch.nn.Module):
         self.linear2 = nn.Linear(hidden_size, 1)
         self.activation = nn.LeakyReLU()
         self.final_activation = nn.Sigmoid()
+        self.DropoutLinear = torch.nn.Dropout(0.5)
+        self.DropoutConv = torch.nn.Dropout(0.1)
+
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.activation(x)
+        x = self.DropoutConv(x)
         x = self.conv2(x)
+        x = self.DropoutConv(x)
         x = self.activation(x)
         x = self.linear1(x.view(x.shape[0], -1))
         x = self.activation(x)
+        x = self.DropoutLinear(x)
         x = self.linear2(x)
+        x = self.DropoutLinear(x)
         return self.final_activation(x)
