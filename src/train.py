@@ -22,7 +22,7 @@ def init_weights(m):
         # print(param.shape)
         if len(param.shape)>=2:
             # print("before: {}".format(param.data[0]))
-            torch.nn.init.xavier_uniform(param)
+            torch.nn.init.xavier_uniform_(param)
             # print("after: {}".format(param.data[0]))
 
 
@@ -55,6 +55,7 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
     criterion = nn.BCELoss()
 
     for epoch in range(epochs):
+        print('hi')
         for index, sample in enumerate(dataloader):
             # print(index)
             #inframes  (N,C,H,W,2), outframes (N,C,H,W)
