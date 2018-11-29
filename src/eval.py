@@ -9,6 +9,7 @@ from math import log10
 import random
 sys.path.append("./src")
 sys.path.append("./models")
+from tqdm import tqdm_notebook
 
 def imagesave(img,name="Overfit_test",path="./experiments/"):
     output_image = img.numpy().transpose((1, 2, 0))
@@ -39,28 +40,30 @@ def evalGAN(dataloader,pathToModel,sampleImagesName = None):
 
     # print(index_for_sample)
     with torch.no_grad():
-        for index, sample in enumerate(dataloader):
-            # print(index)
-            #inframes  (N,C,H,W,2), outframes (N,C,H,W)
-            left, right, outframes = sample['left'].type(dtype),sample['right'].type(dtype),sample['out'].type(dtype)
-            inframes = (left, right)
+        with tqdm_notebook(total=len(dataloader)) as pbar:
+            for index, sample in enumerate(dataloader):
+                # print(index)
+                #inframes  (N,C,H,W,2), outframes (N,C,H,W)
+                left, right, outframes = sample['left'].type(dtype),sample['right'].type(dtype),sample['out'].type(dtype)
+                inframes = (left, right)
 
-            generated_data = generator(inframes)
+                generated_data = generator(inframes)
 
-            G_eval = nn.functional.mse_loss(generated_data,outframes)
-            psnr = 10 * log10(1/G_eval.item())
+                G_eval = nn.functional.mse_loss(generated_data,outframes)
+                psnr = 10 * log10(1/G_eval.item())
 
-            avg_psnr += psnr
+                avg_psnr += psnr
 
-            # print(index)
-            # G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
-            if index == index_for_sample and sampleImagesName is not None:
-                print("hit")
-                # N = generated_data.shape[0]
-                n_imgs = generated_data.data.cpu()
-                imagesave(torchvision.utils.make_grid(n_imgs),name=sampleImagesName+"_generated.png")
-                imagesave(torchvision.utils.make_grid(outframes.data.cpu()),name=sampleImagesName+"_real.png")
-                # print("mean red:{}, mean green:{},mean blue:{} ".format(n_imgs[:,0,:,:].mean(),
-                #                                                         n_imgs[:,1,:,:].mean(),
-                #                                                         n_imgs[:,2,:,:].mean()))
+                # print(index)
+                # G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
+                if index == index_for_sample and sampleImagesName is not None:
+                    print("hit")
+                    # N = generated_data.shape[0]
+                    n_imgs = generated_data.data.cpu()
+                    imagesave(torchvision.utils.make_grid(n_imgs),name=sampleImagesName+"_generated.png")
+                    imagesave(torchvision.utils.make_grid(outframes.data.cpu()),name=sampleImagesName+"_real.png")
+                    # print("mean red:{}, mean green:{},mean blue:{} ".format(n_imgs[:,0,:,:].mean(),
+                    #                                                         n_imgs[:,1,:,:].mean(),
+                    #                                                         n_imgs[:,2,:,:].mean()))
+                pbar.update(1)
         print( "Avg. PNSR:{:.4f} dB".format(avg_psnr/len(dataloader)))

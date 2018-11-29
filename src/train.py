@@ -9,6 +9,7 @@ sys.path.append("./src")
 sys.path.append("./models")
 import random
 from models.GAN_model import GANGenerator, GANDiscriminator
+from tqdm import tqdm_notebook
 
 def imshow(img):
     output_image = img.numpy().transpose((1,2,0))
@@ -54,38 +55,39 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
     G_optimizer = optim.Adam(generator.parameters(), lr=0.0002)
 
     criterion = nn.BCELoss()
-
     for epoch in range(epochs):
         index_for_sample = random.randint(0, len(dataloader))
         print(index_for_sample)
-        for index, sample in enumerate(dataloader):
-            # print(index)
-            #inframes  (N,C,H,W,2), outframes (N,C,H,W)
-            left, right, outframes = sample['left'].type(dtype),sample['right'].type(dtype),sample['out'].type(dtype)
-            inframes = (left, right)
+        with tqdm_notebook(total=len(dataloader)) as pbar:
+            for index, sample in enumerate(dataloader):
+                # print(index)
+                #inframes  (N,C,H,W,2), outframes (N,C,H,W)
+                left, right, outframes = sample['left'].type(dtype),sample['right'].type(dtype),sample['out'].type(dtype)
+                inframes = (left, right)
 
-            #train discriminator
-            generated_data = generator(inframes).detach()
-            D_loss, real_pred, generated_pred = train_D(discriminator,
-                                                          D_optimizer,
-                                                          outframes,
-                                                          generated_data,
-                                                          criterion,dtype)
+                #train discriminator
+                generated_data = generator(inframes).detach()
+                D_loss, real_pred, generated_pred = train_D(discriminator,
+                                                              D_optimizer,
+                                                              outframes,
+                                                              generated_data,
+                                                              criterion,dtype)
 
-            #train generator
-            generated_data = generator(inframes)
-            if not Supervised:
-                G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
-            else:
-                G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
-            if index == index_for_sample:
-                N = generated_data.shape[0]
-                n_imgs = generated_data.data.cpu()
-                imshow(torchvision.utils.make_grid(n_imgs))
-                imshow(torchvision.utils.make_grid(outframes.data.cpu()))
-                print("epoch {} out of {}".format(epoch,epochs))
-                print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
-                print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
+                #train generator
+                generated_data = generator(inframes)
+                if not Supervised:
+                    G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
+                else:
+                    G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
+                if index == index_for_sample:
+                    N = generated_data.shape[0]
+                    n_imgs = generated_data.data.cpu()
+                    imshow(torchvision.utils.make_grid(n_imgs))
+                    imshow(torchvision.utils.make_grid(outframes.data.cpu()))
+                    print("epoch {} out of {}".format(epoch,epochs))
+                    print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
+                    print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
+                pbar.update(1)
 
     if savePath is not None:
         torch.save(generator,savePath + "_Generator")
