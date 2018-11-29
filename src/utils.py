@@ -25,15 +25,30 @@ class VideoInterpTripletsDataset(Dataset):
                 if frames[file] < num:
                     frames[file] = num
             self.filenames = [filename for filename in frames]
+            frame = misc.imread('{}/{}-{}.jpg'\
+                .format(self.directory, self.filenames[0], 0))
+            self.height, self.width, _ = frame.shape
             self.frames = [frames[filename] - 2 for filename in self.filenames]
         else:
             self.filenames = [filename for filename in glob.glob(os.path.join(directory,'*.mp4'))]
             self.frames = [int(skvideo.io.ffprobe(f)['video']['@nb_frames']) - 2 for f in self.filenames]
+            self.heights = [int(skvideo.io.ffprobe(f)['video']['@height']) for f in self.filenames]
+            self.widths = [int(skvideo.io.ffprobe(f)['video']['@width']) for f in self.filenames]
+            assert(sum(self.heights) = self.heights[0] * len(self.heights))
+            assert(sum(self.widths) = self.widths[0] * len(self.widths))
+            self.height = self.heights[0]
+            self.width = self.width[0]
         # TODO(wizeng): Implement crop, tensor, and resize transforms
         self.total = sum(self.frames)
 
     def __len__(self):
         return self.total
+
+    def getheight(self):
+        return self.height
+
+    def getwidth(self):
+        return self.width
 
     def __getitem__(self, index):
         '''

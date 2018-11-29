@@ -5,7 +5,7 @@ import torch.nn as nn
 # TODO: import pre-trained CNNs
 
 class GANGenerator(torch.nn.Module):
-    def __init__(self, conv_layers_size=3, channels=16):
+    def __init__(self, conv_layers_size=0, channels=16):
         '''
         :param conv_layers_size: how many conv layers to add in between
         :input (N, C, H, W, 2)
@@ -61,7 +61,7 @@ class GANGenerator(torch.nn.Module):
 
 
 class GANDiscriminator(torch.nn.Module):
-    def __init__(self, height=288, width=512, hidden_size=300, channels=16):
+    def __init__(self, height, width, hidden_size=300, channels=16):
         '''
         :param flattened_img_size: size of img when flattened
         :param hidden_size: size of hidden layer

@@ -33,12 +33,11 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
     :param savePath: path to where to save model
     :return: saved models
     """
-
-    discriminator = GANDiscriminator()
+    height = dataloader.dataset.getheight()
+    width = dataloader.dataset.getheight()
+    discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     generator = GANGenerator(conv_layers_size=5)
     dtype = torch.FloatTensor
-
-
 
     if torch.cuda.is_available():
         discriminator = discriminator.cuda()
@@ -47,7 +46,6 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
 
     discriminator.apply(init_weights)
     generator.apply(init_weights)
-
 
     D_optimizer = optim.Adam(discriminator.parameters(),lr=0.0002)
     G_optimizer = optim.Adam(generator.parameters(), lr=0.0002)
