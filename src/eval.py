@@ -5,6 +5,8 @@ import torchvision
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
+from math import log10
+import random
 sys.path.append("./src")
 sys.path.append("./models")
 
@@ -16,8 +18,9 @@ def imsave(img,name="Overfit_test",path="./experiments/"):
     plt.savefig(path+name)
 
 
-def evalGAN(dataloader,pathToModel):
+def evalGAN(dataloader,pathToModel,sampleImagesName = None):
     """
+    :param sampleImagesName: name of the
     :param dataloader: dataloader of eval dataset
     :param pathToModel: path to model Discrim and Gen
     :return:
@@ -29,6 +32,8 @@ def evalGAN(dataloader,pathToModel):
         dtype = torch.cuda.FloatTensor
 
     generator.eval()
+    avg_psnr = 0
+    index_for_sample = random.sample(range(len(dataloader)),1)
     with torch.no_grad():
         for index, sample in enumerate(dataloader):
             # print(index)
@@ -39,14 +44,18 @@ def evalGAN(dataloader,pathToModel):
             generated_data = generator(inframes)
 
             G_eval = nn.functional.mse_loss(generated_data,outframes)
+            psnr = 10 * log10(1/G_eval.item())
+
+            avg_psnr += psnr
+
 
             # G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
-            if index % 100 == 0:
+            if index == index_for_sample and sampleImagesName is not None:
                 # N = generated_data.shape[0]
                 n_imgs = generated_data.data.cpu()
-                imsave(torchvision.utils.make_grid(n_imgs),name="Overfit_test_generated.png")
-                imsave(torchvision.utils.make_grid(outframes.data.cpu()),name="Overfit_test_real.png")
+                imsave(torchvision.utils.make_grid(n_imgs),name="./experiments"+sampleImagesName+"_generated.png")
+                imsave(torchvision.utils.make_grid(outframes.data.cpu()),name="./experiments"+sampleImagesName+"_real.png")
                 # print("mean red:{}, mean green:{},mean blue:{} ".format(n_imgs[:,0,:,:].mean(),
                 #                                                         n_imgs[:,1,:,:].mean(),
                 #                                                         n_imgs[:,2,:,:].mean()))
-                print( "G_eval:{}".format(G_eval))
+        print( "Avg. PNSR:{:.4f} dB".format(avg_psnr/len(dataloader)))

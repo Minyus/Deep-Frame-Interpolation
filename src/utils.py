@@ -20,8 +20,10 @@ class VideoInterpTripletsDataset(Dataset):
             frames = collections.defaultdict(int)
             for f in filenames:
                 f = f[f.rfind('/') + 1:f.find('.jpg')]
-                file = f[:f.find('-')]
-                num = int(f[f.find('-') + 1 :])
+                # print(f)
+                file = f[:f.rfind('-')]
+                # print(file)
+                num = int(f[f.rfind('-') + 1 :])
                 if frames[file] < num:
                     frames[file] = num
             self.filenames = [filename for filename in frames]
@@ -34,8 +36,8 @@ class VideoInterpTripletsDataset(Dataset):
             self.frames = [int(skvideo.io.ffprobe(f)['video']['@nb_frames']) - 2 for f in self.filenames]
             self.heights = [int(skvideo.io.ffprobe(f)['video']['@height']) for f in self.filenames]
             self.widths = [int(skvideo.io.ffprobe(f)['video']['@width']) for f in self.filenames]
-            assert(sum(self.heights) = self.heights[0] * len(self.heights))
-            assert(sum(self.widths) = self.widths[0] * len(self.widths))
+            assert(sum(self.heights) == self.heights[0] * len(self.heights))
+            assert(sum(self.widths) == self.widths[0] * len(self.widths))
             self.height = self.heights[0]
             self.width = self.width[0]
         # TODO(wizeng): Implement crop, tensor, and resize transforms

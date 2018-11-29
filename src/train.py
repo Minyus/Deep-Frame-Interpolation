@@ -34,7 +34,9 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
     :return: saved models
     """
     height = dataloader.dataset.getheight()
-    width = dataloader.dataset.getheight()
+    width = dataloader.dataset.getwidth()
+    # print(height)
+    # print(width)
     discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     generator = GANGenerator(conv_layers_size=5)
     dtype = torch.FloatTensor
