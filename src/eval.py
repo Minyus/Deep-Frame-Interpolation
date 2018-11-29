@@ -53,8 +53,8 @@ def evalGAN(dataloader,pathToModel,sampleImagesName = None):
             if index == index_for_sample and sampleImagesName is not None:
                 # N = generated_data.shape[0]
                 n_imgs = generated_data.data.cpu()
-                imsave(torchvision.utils.make_grid(n_imgs),name="./experiments"+sampleImagesName+"_generated.png")
-                imsave(torchvision.utils.make_grid(outframes.data.cpu()),name="./experiments"+sampleImagesName+"_real.png")
+                imsave(torchvision.utils.make_grid(n_imgs),name="./experiments/"+sampleImagesName+"_generated.png")
+                imsave(torchvision.utils.make_grid(outframes.data.cpu()),name="./experiments/"+sampleImagesName+"_real.png")
                 # print("mean red:{}, mean green:{},mean blue:{} ".format(n_imgs[:,0,:,:].mean(),
                 #                                                         n_imgs[:,1,:,:].mean(),
                 #                                                         n_imgs[:,2,:,:].mean()))
