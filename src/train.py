@@ -7,6 +7,7 @@ import sys
 import numpy as np
 sys.path.append("./src")
 sys.path.append("./models")
+import random
 from models.GAN_model import GANGenerator, GANDiscriminator
 
 def imshow(img):
@@ -55,8 +56,8 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
     criterion = nn.BCELoss()
 
     for epoch in range(epochs):
-        print('hi')
         index_for_sample = random.randint(0, len(dataloader))
+        print(index_for_sample)
         for index, sample in enumerate(dataloader):
             # print(index)
             #inframes  (N,C,H,W,2), outframes (N,C,H,W)
