@@ -56,6 +56,7 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
 
     for epoch in range(epochs):
         print('hi')
+        index_for_sample = random.randint(0, len(dataloader))
         for index, sample in enumerate(dataloader):
             # print(index)
             #inframes  (N,C,H,W,2), outframes (N,C,H,W)
@@ -76,7 +77,7 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
                 G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
             else:
                 G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
-            if index % 100 == 0:
+            if index == index_for_sample:
                 N = generated_data.shape[0]
                 n_imgs = generated_data.data.cpu()
                 imshow(torchvision.utils.make_grid(n_imgs))
