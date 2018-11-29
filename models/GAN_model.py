@@ -73,7 +73,7 @@ class GANDiscriminator(torch.nn.Module):
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(2, stride=2)
         self.norm = nn.BatchNorm2d(channels)
-        self.linear1 = nn.Linear(channels * height * width, hidden_size)
+        self.linear1 = nn.Linear(height * width, hidden_size)
         self.linear2 = nn.Linear(hidden_size, 1)
         self.activation = nn.LeakyReLU()
         self.final_activation = nn.Sigmoid()
