@@ -10,9 +10,11 @@ import random
 sys.path.append("./src")
 sys.path.append("./models")
 
-def imsave(img,name="Overfit_test",path="./experiments/"):
-    npimg = img.numpy().astype(np.uint8).transpose((1,2,0))
+def imagesave(img,name="Overfit_test",path="./experiments/"):
+    output_image = img.numpy().transpose((1, 2, 0))
+    npimg = np.interp(output_image, (-1.0, 1.0), (0, 255.0)).astype(np.uint8)
     #format H,W,C
+    print(path+name)
     plt.figure(figsize=(20,10))
     plt.imshow(npimg)
     plt.savefig(path+name)
@@ -33,7 +35,9 @@ def evalGAN(dataloader,pathToModel,sampleImagesName = None):
 
     generator.eval()
     avg_psnr = 0
-    index_for_sample = random.sample(range(len(dataloader)),1)
+    index_for_sample = random.randint(0,len(dataloader))
+
+    # print(index_for_sample)
     with torch.no_grad():
         for index, sample in enumerate(dataloader):
             # print(index)
@@ -48,13 +52,14 @@ def evalGAN(dataloader,pathToModel,sampleImagesName = None):
 
             avg_psnr += psnr
 
-
+            # print(index)
             # G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
             if index == index_for_sample and sampleImagesName is not None:
+                print("hit")
                 # N = generated_data.shape[0]
                 n_imgs = generated_data.data.cpu()
-                imsave(torchvision.utils.make_grid(n_imgs),name="./experiments/"+sampleImagesName+"_generated.png")
-                imsave(torchvision.utils.make_grid(outframes.data.cpu()),name="./experiments/"+sampleImagesName+"_real.png")
+                imagesave(torchvision.utils.make_grid(n_imgs),name=sampleImagesName+"_generated.png")
+                imagesave(torchvision.utils.make_grid(outframes.data.cpu()),name=sampleImagesName+"_real.png")
                 # print("mean red:{}, mean green:{},mean blue:{} ".format(n_imgs[:,0,:,:].mean(),
                 #                                                         n_imgs[:,1,:,:].mean(),
                 #                                                         n_imgs[:,2,:,:].mean()))
