@@ -1,20 +1,11 @@
 .DS_Store
-datasets
+datasets/
+experiments/
 *.mp4
 *.zip
-
 models/pytorch-sepconv
-
-models/OverfitTest_GAN_Discriminator
-
-models/OverfitTest_GAN_Generator
-
-models/OverfitTest_SGAN_Discriminator
-
-models/OverfitTest_SGAN_Generator
-
 \.idea/
-
+.ipynb_checkpoints
 src/__pycache__/
 
 models/__pycache__/

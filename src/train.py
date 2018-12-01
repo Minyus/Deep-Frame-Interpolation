@@ -28,36 +28,41 @@ def init_weights(m):
             # print("after: {}".format(param.data[0]))
 
 
-def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
+def trainGAN(epochs,dataloader,savePath=None,Supervised=True):
     """
     :param epochs: # of epochs to run for
     :param datasetloader: dataloader of dataset we want to train on
     :param savePath: path to where to save model
     :return: saved models
     """
+    print('Training GAN')
+    #TODO: print run time of each epoch
     height = dataloader.dataset.getheight()
     width = dataloader.dataset.getwidth()
-    # print(height)
-    # print(width)
+    print('Video (h,w): ({}, {})'.format(height,width))
     discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     generator = GANGenerator(conv_layers_size=5)
     dtype = torch.FloatTensor
+    print('Created models')
 
     if torch.cuda.is_available():
         discriminator = discriminator.cuda()
         generator = generator.cuda()
         dtype = torch.cuda.FloatTensor
+        print('Cuda available')
 
     discriminator.apply(init_weights)
     generator.apply(init_weights)
+    print('Initialized weights')
 
     D_optimizer = optim.Adam(discriminator.parameters(),lr=0.0002)
     G_optimizer = optim.Adam(generator.parameters(), lr=0.0002)
 
     criterion = nn.BCELoss()
+    print('Set up models')
     for epoch in range(epochs):
         index_for_sample = random.randint(0, len(dataloader))
-        print(index_for_sample)
+        print('Index for sample: {}'.format(index_for_sample))
         with tqdm_notebook(total=len(dataloader)) as pbar:
             for index, sample in enumerate(dataloader):
                 # print(index)
@@ -78,7 +83,7 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
                 if not Supervised:
                     G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
                 else:
-                    G_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
+                    G_loss, G0_loss, S_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
                 if index == index_for_sample:
                     N = generated_data.shape[0]
                     n_imgs = generated_data.data.cpu()
@@ -86,6 +91,8 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=False):
                     imshow(torchvision.utils.make_grid(outframes.data.cpu()))
                     print("epoch {} out of {}".format(epoch,epochs))
                     print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
+                    if Supervised:
+                        print("G_loss_only:{}, S_loss:{}".format(G0_loss, S_loss))
                     print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
                 pbar.update(1)
 
@@ -139,7 +146,7 @@ def train_G(discriminator,optimizer,generated_data,criterion,dtype):
     optimizer.step()
 
     return generated_loss
-def train_GS(discriminator,optimizer,real_data,generated_data,criterion,dtype,epoch):
+def train_GS(discriminator,optimizer,real_data,generated_data,criterion,dtype,epoch,lmd=0.1):
     """
     :param discriminator: generator model
     :param optimizer: optimizer object
@@ -157,8 +164,8 @@ def train_GS(discriminator,optimizer,real_data,generated_data,criterion,dtype,ep
     generated_loss = criterion(output,torch.ones(N,1).type(dtype))
     supervised_loss = torch.nn.functional.smooth_l1_loss(generated_data,real_data)
     # print("generated_loss: {}".format(generated_loss))
-    total_loss = generated_loss + supervised_loss
+    total_loss = lmd * generated_loss + supervised_loss
     total_loss.backward()
 
     optimizer.step()
-    return total_loss
+    return total_loss, generated_loss, supervised_loss
