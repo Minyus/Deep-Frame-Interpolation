@@ -6,15 +6,18 @@ from scipy import misc
 import skvideo.io
 import torch
 from torch.utils.data import Dataset
+import cv2
 
 class VideoInterpTripletsDataset(Dataset):
-    def __init__(self, directory, read_frames=False):
+    def __init__(self, directory, read_frames=False,resize=(512,288)):
         """
         :param directory: directory of videos
         :param read_frames: if False, read mp4's. If True, read frames with name 'videoname-framenum.jpg'
+        :param resize: sets resize dimensions if we read from a video only important if we don't read_frames
         """
         self.directory = directory
         self.read_frames = read_frames
+        self.resize = resize
         if self.read_frames:
             filenames = [filename for filename in glob.glob(os.path.join(directory,'*.jpg'))]
             frames = collections.defaultdict(int)
@@ -38,8 +41,11 @@ class VideoInterpTripletsDataset(Dataset):
             self.widths = [int(skvideo.io.ffprobe(f)['video']['@width']) for f in self.filenames]
             assert(sum(self.heights) == self.heights[0] * len(self.heights))
             assert(sum(self.widths) == self.widths[0] * len(self.widths))
-            self.height = self.heights[0]
-            self.width = self.width[0]
+            if self.resize is not None:
+                self.height,self.width = self.resize
+            else:
+                self.height = self.heights[0]
+                self.width = self.widths[0]
         # TODO(wizeng): Implement crop, tensor, and resize transforms
         self.total = sum(self.frames)
 
@@ -68,12 +74,25 @@ class VideoInterpTripletsDataset(Dataset):
             # triplet = (np.float(triplet)/255.0) * 2.0 - 1
             triplet = [np.interp(trip,(0,255),(-1.0,1.0)) for trip in triplet]
         else:
-            reader = skvideo.io.vreader(self.filenames[file], inputdict={'--start_number':index, '-vframes':'3'})
+            # reader = skvideo.io.vreader(self.filenames[file], inputdict={'--start_number':str(index), '-frames':'3'})
             # reader = skvideo.io.vreader(self.filenames[file], inputdict={'-vf':'select=gte(n\\,{})'.format(index), '-vframes':'3'})
+            cap = cv2.VideoCapture(self.filenames[file])
+            cap.set(cv2.CAP_PROP_POS_FRAMES, index)
             triplet = []
-            for frame in reader:
+            for i in range(3):
+                # print("UGGUGUUGU")
+                ret,frame = cap.read()
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                if self.resize is not None:
+                    frame = cv2.resize(frame,self.resize)
                 triplet.append(frame)
+            # print("HGNGNGNGNGN")
+            cap.release()
+            # for frame in reader:
+            #     triplet.append(frame)
+        # print("hit before triplet")
         triplet = [torch.from_numpy(frame.transpose((2, 0, 1))).type('torch.FloatTensor') for frame in triplet] # (C, H, W)
+        # print(triplet[0].shape)
         return {'left': triplet[0], 'right': triplet[2], 'out': triplet[1]}
 
         # totalLen = 0
