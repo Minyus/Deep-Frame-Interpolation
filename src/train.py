@@ -5,6 +5,7 @@ import torchvision
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
+import time
 sys.path.append("./src")
 sys.path.append("./models")
 import random
@@ -12,9 +13,12 @@ from models.GAN_model import GANGenerator, GANDiscriminator
 from tqdm import tqdm_notebook
 
 def imshow(img):
+    print('Image dtype and mean')
+    print(img.dtype)
+    print(img.mean())
     output_image = img.numpy().transpose((1,2,0))
     npimg = np.interp(output_image,(-1.0,1.0),(0,255.0)).astype(np.uint8)
-    print(np.mean(npimg))
+    print('Mean of image: {}'.format(npimg.mean()))
     #format H,W,C
     plt.imshow(npimg)
     plt.show()
@@ -22,41 +26,33 @@ def imshow(img):
 def init_weights(m):
     for param in m.parameters():
         # print(param.shape)
-        if len(param.shape)>=2:
+        if len(param.shape) >= 2:
             # print("before: {}".format(param.data[0]))
             torch.nn.init.xavier_uniform_(param)
             # print("after: {}".format(param.data[0]))
 
 
-def trainGAN(epochs, dataloader, savePath, supervised=True):
+def trainGAN(epochs, dataloader, save_path, save_every = None, supervised=True):
     """
     :param epochs: # of epochs to run for
     :param datasetloader: dataloader of dataset we want to train on
-    :param savePath: path to where to save model
+    :param save_path: path to where to save model
     :return: saved models
     """
-    print('Training GAN')
-    #TODO: print run time of each epoch
-    height = dataloader.dataset.getheight()
-    width = dataloader.dataset.getwidth()
+    if save_every is None:
+        save_every = epochs
+    height, width = dataloader.dataset.getsize()
     print('Video (h,w): ({}, {})'.format(height,width))
     generator = GANGenerator(conv_layers_size=5)
-    print('Done with generator')
     discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
-    print('Done with discriminator')
     dtype = torch.FloatTensor
     print('Created models')
-    print(torch.cuda)
-    print(torch.cuda.is_available())
-    print(torch.cuda.device_count())
-    discriminator = discriminator.cuda()
 
-#     if torch.cuda.is_available():
-#         print(torch.cuda.device_count())
-#         discriminator = discriminator.cuda()
-#         generator = generator.cuda()
-#         dtype = torch.cuda.FloatTensor
-#         print('Cuda available')
+    if torch.cuda.is_available():
+        discriminator = discriminator.cuda()
+        generator = generator.cuda()
+        dtype = torch.cuda.FloatTensor
+        print('GPU: {}'.format(torch.cuda.get_device_name(0)))
 
     discriminator.apply(init_weights)
     generator.apply(init_weights)
@@ -67,7 +63,8 @@ def trainGAN(epochs, dataloader, savePath, supervised=True):
 
     criterion = nn.BCELoss()
     print('Set up models')
-    for epoch in range(epochs):
+    for epoch in range(1, epochs + 1):
+        start_time = time.time()
         index_for_sample = random.randint(0, len(dataloader))
         print('Index for sample: {}'.format(index_for_sample))
         with tqdm_notebook(total=len(dataloader)) as pbar:
@@ -94,7 +91,9 @@ def trainGAN(epochs, dataloader, savePath, supervised=True):
                 if index == index_for_sample:
                     N = generated_data.shape[0]
                     n_imgs = generated_data.data.cpu()
+                    print('Generated images')
                     imshow(torchvision.utils.make_grid(n_imgs))
+                    print('Real images')
                     imshow(torchvision.utils.make_grid(outframes.data.cpu()))
                     print("epoch {} out of {}".format(epoch,epochs))
                     print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
@@ -102,10 +101,13 @@ def trainGAN(epochs, dataloader, savePath, supervised=True):
                         print("G_loss_only:{}, S_loss:{}".format(G0_loss, S_loss))
                     print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
                 pbar.update(1)
-
-    if savePath is not None:
-        torch.save(generator,savePath + "_Generator")
-        torch.save(discriminator,savePath+"_Discriminator")
+        print('runtime: {}'.format(time.time() - start_time))
+        if epoch % save_every == 0 and save_path is not None:
+            torch.save(generator, '{}_{}_Generator'.format(save_path, epoch))
+            torch.save(discriminator, '{}_{}_Discriminator'.format(save_path, epoch))
+    if epochs % save_every != 0 and save_path is not None:
+        torch.save(generator, '{}_{}_Generator'.format(save_path, epochs))
+        torch.save(discriminator, '{}_{}_Discriminator'.format(save_path, epochs))
 
     return generator, discriminator
 

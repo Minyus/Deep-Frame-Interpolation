@@ -55,11 +55,8 @@ class VideoInterpTripletsDataset(Dataset):
     def __len__(self):
         return self.total
 
-    def getheight(self):
-        return self.height
-
-    def getwidth(self):
-        return self.width
+    def getsize(self):
+        return self.height, self.width
 
     def __getitem__(self, index):
         '''
