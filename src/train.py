@@ -28,7 +28,7 @@ def init_weights(m):
             # print("after: {}".format(param.data[0]))
 
 
-def trainGAN(epochs,dataloader,savePath=None,Supervised=True):
+def trainGAN(epochs, dataloader, savePath, supervised=True):
     """
     :param epochs: # of epochs to run for
     :param datasetloader: dataloader of dataset we want to train on
@@ -40,16 +40,23 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=True):
     height = dataloader.dataset.getheight()
     width = dataloader.dataset.getwidth()
     print('Video (h,w): ({}, {})'.format(height,width))
-    discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     generator = GANGenerator(conv_layers_size=5)
+    print('Done with generator')
+    discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
+    print('Done with discriminator')
     dtype = torch.FloatTensor
     print('Created models')
+    print(torch.cuda)
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
+    discriminator = discriminator.cuda()
 
-    if torch.cuda.is_available():
-        discriminator = discriminator.cuda()
-        generator = generator.cuda()
-        dtype = torch.cuda.FloatTensor
-        print('Cuda available')
+#     if torch.cuda.is_available():
+#         print(torch.cuda.device_count())
+#         discriminator = discriminator.cuda()
+#         generator = generator.cuda()
+#         dtype = torch.cuda.FloatTensor
+#         print('Cuda available')
 
     discriminator.apply(init_weights)
     generator.apply(init_weights)
@@ -80,7 +87,7 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=True):
 
                 #train generator
                 generated_data = generator(inframes)
-                if not Supervised:
+                if not supervised:
                     G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
                 else:
                     G_loss, G0_loss, S_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
@@ -91,7 +98,7 @@ def trainGAN(epochs,dataloader,savePath=None,Supervised=True):
                     imshow(torchvision.utils.make_grid(outframes.data.cpu()))
                     print("epoch {} out of {}".format(epoch,epochs))
                     print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
-                    if Supervised:
+                    if supervised:
                         print("G_loss_only:{}, S_loss:{}".format(G0_loss, S_loss))
                     print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
                 pbar.update(1)

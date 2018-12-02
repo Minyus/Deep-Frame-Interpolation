@@ -30,9 +30,12 @@ class VideoInterpTripletsDataset(Dataset):
                 if frames[file] < num:
                     frames[file] = num
             self.filenames = [filename for filename in frames]
+            print('Filenames')
+            print(self.filenames)
             frame = misc.imread('{}/{}-{}.jpg'\
                 .format(self.directory, self.filenames[0], 0))
             self.height, self.width, _ = frame.shape
+            print('Frame read, (h,w) is ({},{})'.format(self.height, self.width))
             self.frames = [frames[filename] - 2 for filename in self.filenames]
         else:
             self.filenames = [filename for filename in glob.glob(os.path.join(directory,'*.mp4'))]
@@ -73,6 +76,7 @@ class VideoInterpTripletsDataset(Dataset):
                 .format(self.directory, self.filenames[file], i)) for i in range(index, index + 3)]
             # triplet = (np.float(triplet)/255.0) * 2.0 - 1
             triplet = [np.interp(trip,(0,255),(-1.0,1.0)) for trip in triplet]
+            f = triplet[0]
         else:
             # reader = skvideo.io.vreader(self.filenames[file], inputdict={'--start_number':str(index), '-frames':'3'})
             # reader = skvideo.io.vreader(self.filenames[file], inputdict={'-vf':'select=gte(n\\,{})'.format(index), '-vframes':'3'})
@@ -80,13 +84,11 @@ class VideoInterpTripletsDataset(Dataset):
             cap.set(cv2.CAP_PROP_POS_FRAMES, index)
             triplet = []
             for i in range(3):
-                # print("UGGUGUUGU")
                 ret,frame = cap.read()
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 if self.resize is not None:
                     frame = cv2.resize(frame,self.resize)
                 triplet.append(frame)
-            # print("HGNGNGNGNGN")
             cap.release()
             # for frame in reader:
             #     triplet.append(frame)

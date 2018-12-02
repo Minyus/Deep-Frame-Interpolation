@@ -4,8 +4,8 @@ experiments/
 *.mp4
 *.zip
 models/pytorch-sepconv
-\.idea/
-.ipynb_checkpoints
+.idea/
+.ipynb_checkpoints/
 src/__pycache__/
 
 models/__pycache__/

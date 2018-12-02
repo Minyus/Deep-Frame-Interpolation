@@ -12,11 +12,14 @@ class GANGenerator(torch.nn.Module):
         :output (N, C, H, W)
         '''
         super(GANGenerator, self).__init__()
+        print('yo')
         self.conv_first = nn.Conv2d(6, channels, kernel_size=3, stride=1, padding=1)
         self.conv_list = nn.ModuleList(
             [nn.Conv2d(channels, channels, kernel_size=5, stride=1, padding=2) for i in range(conv_layers_size)])
+        print('yo2')
         self.conv_last = nn.Conv2d(channels, 3, kernel_size=3, stride=1, padding=1)
         self.activation = nn.LeakyReLU()
+        print('yo3')
         self.final_activation = nn.Tanh()
     def forward(self, x):
         x = torch.cat(x, dim=1)
@@ -39,17 +42,25 @@ class GANDiscriminator(torch.nn.Module):
         :output (N)
         '''
         super(GANDiscriminator, self).__init__()
+        print('yo')
+        print(type(height), type(width))
+        print(height)
+        print(width)
         self.conv1 = nn.Conv2d(3, channels, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(2, stride=2)
+        print('yo2')
         self.norm = nn.BatchNorm2d(channels)
-        self.linear1 = nn.Linear(height * width, hidden_size)
+        print('yo2')
+        self.linear1 = nn.Linear(height * width / 16, hidden_size)
+        print('yo2')
         self.linear2 = nn.Linear(hidden_size, 1)
+        print('yo3')
         self.activation = nn.LeakyReLU()
         self.final_activation = nn.Sigmoid()
         self.DropoutLinear = torch.nn.Dropout(0.2)
+        print('yo4')
         self.DropoutConv = torch.nn.Dropout(0.1)
-
 
     def forward(self, x):
         x = self.conv1(x)
