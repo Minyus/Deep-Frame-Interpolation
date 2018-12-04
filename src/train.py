@@ -63,6 +63,7 @@ def trainGAN(epochs, dataloader, save_path, save_every = None, supervised=True):
 
     criterion = nn.BCELoss()
     print('Set up models')
+    loss_file = []
     for epoch in range(1, epochs + 1):
         start_time = time.time()
         index_for_sample = random.randint(0, len(dataloader))
@@ -84,10 +85,10 @@ def trainGAN(epochs, dataloader, save_path, save_every = None, supervised=True):
 
                 #train generator
                 generated_data = generator(inframes)
-                if not supervised:
-                    G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
-                else:
+                if supervised:
                     G_loss, G0_loss, S_loss = train_GS(discriminator,G_optimizer,outframes,generated_data,criterion,dtype,epoch)
+                else:
+                    G_loss = train_G(discriminator, G_optimizer, generated_data, criterion,dtype)
                 if index == index_for_sample:
                     N = generated_data.shape[0]
                     n_imgs = generated_data.data.cpu()
@@ -95,19 +96,29 @@ def trainGAN(epochs, dataloader, save_path, save_every = None, supervised=True):
                     imshow(torchvision.utils.make_grid(n_imgs))
                     print('Real images')
                     imshow(torchvision.utils.make_grid(outframes.data.cpu()))
-                    print("epoch {} out of {}".format(epoch,epochs))
-                    print("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
+                if index == len(dataloader) - 1:
+                    loss_file.append("epoch {} out of {}".format(epoch,epochs))
+                    loss_file.append("D_loss:{}, G_loss:{}".format(D_loss,G_loss))
                     if supervised:
-                        print("G_loss_only:{}, S_loss:{}".format(G0_loss, S_loss))
-                    print("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
+                        loss_file.append("G_loss_only:{}, S_loss:{}".format(G0_loss, S_loss))
+                    loss_file.append("mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(),generated_pred.mean()))
                 pbar.update(1)
-        print('runtime: {}'.format(time.time() - start_time))
+        loss_file.append('runtime: {}'.format(time.time() - start_time))
+        for l in loss_file:
+            print(l)
         if epoch % save_every == 0 and save_path is not None:
-            torch.save(generator, '{}_{}_Generator'.format(save_path, epoch))
-            torch.save(discriminator, '{}_{}_Discriminator'.format(save_path, epoch))
+            torch.save(generator, '{}/{}_Generator'.format(save_path, epoch))
+            torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epoch))
+        print('{}/stats.txt'.format(save_path))
+        print(len(loss_file))
+        with open('{}/stats.txt'.format(save_path),'a') as f:
+            for l in loss_file:
+                f.write('{}\n'.format(l))
+        loss_file = []
+            
     if epochs % save_every != 0 and save_path is not None:
-        torch.save(generator, '{}_{}_Generator'.format(save_path, epochs))
-        torch.save(discriminator, '{}_{}_Discriminator'.format(save_path, epochs))
+        torch.save(generator, '{}/{}_Generator'.format(save_path, epochs))
+        torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epochs))
 
     return generator, discriminator
 
@@ -155,6 +166,7 @@ def train_G(discriminator,optimizer,generated_data,criterion,dtype):
     optimizer.step()
 
     return generated_loss
+
 def train_GS(discriminator,optimizer,real_data,generated_data,criterion,dtype,epoch,lmd=0.1):
     """
     :param discriminator: generator model
