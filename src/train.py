@@ -141,14 +141,14 @@ def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, un
             for l in loss_file:
                 f.write('{}\n'.format(l))
         loss_file = []
-            
+
     if epochs % save_every != 0 and save_path is not None:
         torch.save(generator, '{}/{}_Generator'.format(save_path, epochs))
         torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epochs))
 
     return generator, discriminator
 
-def loss_G(d, g, g_optim, gen, real, supervised, lmd=0.001):
+def loss_G(d, g, g_optim, gen, real, supervised, lmd=0.00001):
     loss = -torch.mean(F.logsigmoid(d(gen)))
     gen_loss, sup_loss = loss, None
     if supervised:
