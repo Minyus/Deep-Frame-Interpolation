@@ -10,7 +10,7 @@ sys.path.append("./src")
 sys.path.append("./models")
 import random
 from models.GAN_model import GANGenerator, GANDiscriminator
-from models.UNet_import UNetGenerator, UNetDiscriminator
+from models.UNet_model import UNetGenerator, UNetDiscriminator
 from tqdm import tqdm_notebook
 
 def imshow(img):
@@ -141,8 +141,8 @@ def trainUNet(epochs, dataloader, save_path, save_every=None, supervised=True):
     print('Created models')
 
     if torch.cuda.is_available():
-        discriminator = discriminator.cuda()
         generator = generator.cuda()
+        discriminator = discriminator.cuda()
         dtype = torch.cuda.FloatTensor
         print('GPU: {}'.format(torch.cuda.get_device_name(0)))
 
