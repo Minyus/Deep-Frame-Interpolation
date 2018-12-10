@@ -10,7 +10,7 @@ class Flatten(nn.Module):
 class double_conv(nn.Module):
     '''(conv => BN => ReLU) * 2'''
     def __init__(self, in_ch, out_ch):
-        super(double_conv, self).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, 3, padding=1),
             nn.BatchNorm2d(out_ch),
@@ -19,14 +19,6 @@ class double_conv(nn.Module):
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True)
         )
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
-class inconv(nn.Module):
-    def __init__(self, in_ch, out_ch):
-        super().__init__()
-        self.conv = double_conv(in_ch, out_ch)
 
     def forward(self, x):
         x = self.conv(x)
@@ -34,7 +26,7 @@ class inconv(nn.Module):
 
 class up(nn.Module):
     def __init__(self, in_ch, out_ch):
-        super(up, self).__init__()
+        super().__init__()
 
         self.up = nn.ConvTranspose2d(in_ch // 2, in_ch // 2, 2, stride=2)
         self.conv = double_conv(in_ch, out_ch)
@@ -42,7 +34,7 @@ class up(nn.Module):
     def forward(self, x1, x2):
         x1 = self.up(x1)
 
-        # input is CHW
+        # input is NCHW
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
 
@@ -52,26 +44,19 @@ class up(nn.Module):
         x = self.conv(x)
         return x
 
-class Downsample(nn.Module):
-    def __init__(self,scale=0.5):
-        super().__init__()
-    def forward(self,x):
-        return F.interpolate(x,scale_factor=0.5)
-
 class interpDownConv(nn.Module):
-    def __init__(self,in_ch,out_ch):
+    def __init__(self, in_ch, out_ch):
         super().__init__()
-        self.downConv = nn.Sequential(
-            Downsample(),
-            double_conv(in_ch,out_ch))
+        self.downConv = double_conv(in_ch,out_ch)
+
     def forward(self,x):
-        x = self.downConv(x)
-        return x
+        x = F.interpolate(x, scale_factor=0.5)
+        return self.downConv(x)
 
 class UNetGenerator(nn.Module):
-    def __init__(self,n_channels=6):
+    def __init__(self, n_channels=6):
         super().__init__()
-        self.inc = inconv(n_channels, 16)
+        self.inc = double_conv(n_channels, 16)
         self.down1 = interpDownConv(16, 32)
         self.down2 = interpDownConv(32, 64)
         self.down3 = interpDownConv(64, 128)
@@ -95,10 +80,11 @@ class UNetGenerator(nn.Module):
         x = self.up4(x, x1)
         x = self.outc(x)
         return x
+
 class UNetDiscriminator(nn.Module):
-    def __init__(self, n_channels=3,height=512,width=288,hidden_size=300):
+    def __init__(self, n_channels=3, height=512, width=288, hidden_size=300):
         super().__init__()
-        self.inc = inconv(n_channels, 16)
+        self.inc = double_conv(n_channels, 16)
         self.down1 = interpDownConv(16, 32)
         self.down2 = interpDownConv(32, 64)
         self.down3 = interpDownConv(64, 128)
@@ -107,9 +93,13 @@ class UNetDiscriminator(nn.Module):
         self.up2 = up(128, 32)
         self.up3 = up(64, 16)
         self.up4 = up(32, 16)
-        self.outc = double_conv(16, 3)
-        self.outLinear = nn.Linear(height * width * 3, hidden_size)
-        self.flatten = Flatten()
+        self.final = nn.Sequential(
+            double_conv(16, 3),
+            Flatten(),
+            nn.Linear(height * width * 3, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, 1),
+            nn.Sigmoid())
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -121,7 +111,4 @@ class UNetDiscriminator(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        x = self.outc(x)
-        x = self.flatten(x)
-        x = self.outLinear(x)
-        return F.sigmoid(x)
+        return self.final(x)
