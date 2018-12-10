@@ -10,6 +10,7 @@ sys.path.append("./src")
 sys.path.append("./models")
 import random
 from models.GAN_model import GANGenerator, GANDiscriminator
+from models.UNet_import UNetGenerator, UNetDiscriminator
 from tqdm import tqdm_notebook
 
 def imshow(img):
@@ -116,6 +117,100 @@ def trainGAN(epochs, dataloader, save_path, save_every = None, supervised=True):
                 f.write('{}\n'.format(l))
         loss_file = []
             
+    if epochs % save_every != 0 and save_path is not None:
+        torch.save(generator, '{}/{}_Generator'.format(save_path, epochs))
+        torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epochs))
+
+    return generator, discriminator
+
+
+def trainUNet(epochs, dataloader, save_path, save_every=None, supervised=True):
+    """
+    :param epochs: # of epochs to run for
+    :param datasetloader: dataloader of dataset we want to train on
+    :param save_path: path to where to save model
+    :return: saved models
+    """
+    if save_every is None:
+        save_every = epochs
+    height, width = dataloader.dataset.getsize()
+    print('Video (h,w): ({}, {})'.format(height, width))
+    generator = UNetGenerator()
+    discriminator = UNetDiscriminator(height=height, width=width, hidden_size=300)
+    dtype = torch.FloatTensor
+    print('Created models')
+
+    if torch.cuda.is_available():
+        discriminator = discriminator.cuda()
+        generator = generator.cuda()
+        dtype = torch.cuda.FloatTensor
+        print('GPU: {}'.format(torch.cuda.get_device_name(0)))
+
+    discriminator.apply(init_weights)
+    generator.apply(init_weights)
+    print('Initialized weights')
+
+    D_optimizer = optim.Adam(discriminator.parameters(), lr=0.0002)
+    G_optimizer = optim.Adam(generator.parameters(), lr=0.0002)
+
+    criterion = nn.BCELoss()
+    print('Set up models')
+    loss_file = []
+    for epoch in range(1, epochs + 1):
+        start_time = time.time()
+        index_for_sample = random.randint(0, len(dataloader))
+        print('Index for sample: {}'.format(index_for_sample))
+        with tqdm_notebook(total=len(dataloader)) as pbar:
+            for index, sample in enumerate(dataloader):
+                # print(index)
+                # inframes  (N,C,H,W,2), outframes (N,C,H,W)
+                left, right, outframes = sample['left'].type(dtype), sample['right'].type(dtype), sample['out'].type(
+                    dtype)
+                inframes = (left, right)
+
+                # train discriminator
+                generated_data = generator(inframes).detach()
+                D_loss, real_pred, generated_pred = train_D(discriminator,
+                                                            D_optimizer,
+                                                            outframes,
+                                                            generated_data,
+                                                            criterion, dtype)
+
+                # train generator
+                generated_data = generator(inframes)
+                if supervised:
+                    G_loss, G0_loss, S_loss = train_GS(discriminator, G_optimizer, outframes, generated_data, criterion,
+                                                       dtype, epoch)
+                else:
+                    G_loss = train_G(discriminator, G_optimizer, generated_data, criterion, dtype)
+                if index == index_for_sample:
+                    N = generated_data.shape[0]
+                    n_imgs = generated_data.data.cpu()
+                    print('Generated images')
+                    imshow(torchvision.utils.make_grid(n_imgs))
+                    print('Real images')
+                    imshow(torchvision.utils.make_grid(outframes.data.cpu()))
+                if index == len(dataloader) - 1:
+                    loss_file.append("epoch {} out of {}".format(epoch, epochs))
+                    loss_file.append("D_loss:{}, G_loss:{}".format(D_loss, G_loss))
+                    if supervised:
+                        loss_file.append("G_loss_only:{}, S_loss:{}".format(G0_loss, S_loss))
+                    loss_file.append(
+                        "mean D_pred_real:{}, mean D_pred_gen:{}\n".format(real_pred.mean(), generated_pred.mean()))
+                pbar.update(1)
+        loss_file.append('runtime: {}'.format(time.time() - start_time))
+        for l in loss_file:
+            print(l)
+        if epoch % save_every == 0 and save_path is not None:
+            torch.save(generator, '{}/{}_Generator'.format(save_path, epoch))
+            torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epoch))
+        print('{}/stats.txt'.format(save_path))
+        print(len(loss_file))
+        with open('{}/stats.txt'.format(save_path), 'a') as f:
+            for l in loss_file:
+                f.write('{}\n'.format(l))
+        loss_file = []
+
     if epochs % save_every != 0 and save_path is not None:
         torch.save(generator, '{}/{}_Generator'.format(save_path, epochs))
         torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epochs))

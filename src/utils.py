@@ -24,7 +24,7 @@ class VideoInterpTripletsDataset(Dataset):
             for f in filenames:
                 f = f[f.rfind('/') + 1:f.find('.jpg')]
                 # print(f)
-                file = f[:f.rfind('-')]
+                zfile = f[:f.rfind('-')]
                 # print(file)
                 num = int(f[f.rfind('-') + 1 :])
                 if frames[file] < num:
