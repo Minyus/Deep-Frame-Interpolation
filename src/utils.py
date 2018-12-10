@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 import cv2
 
 class VideoInterpTripletsDataset(Dataset):
-    def __init__(self, directory, read_frames=False,resize=(512,288)):
+    def __init__(self, directory, read_frames=False, resize=(512,288)):
         """
         :param directory: directory of videos
         :param read_frames: if False, read mp4's. If True, read frames with name 'videoname-framenum.jpg'
@@ -71,7 +71,6 @@ class VideoInterpTripletsDataset(Dataset):
         if self.read_frames:
             triplet = [misc.imread('{}/{}-{}.jpg'\
                 .format(self.directory, self.filenames[file], i)) for i in range(index, index + 3)]
-            # triplet = (np.float(triplet)/255.0) * 2.0 - 1
             triplet = [np.interp(trip,(0,255),(-1.0,1.0)) for trip in triplet]
             f = triplet[0]
         else:
