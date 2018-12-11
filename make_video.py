@@ -50,10 +50,10 @@ def main():
             data = {f:dataset[i][f][None, :] for f in dataset[i]}
             inframes = (data['left'], data['right'])
             if i == 0:
-                tensor2cv(inframes[0], out)
+                write2video(inframes[0], out)
             g = gen(inframes)
-            tensor2cv(mix_frames(data['out'], g), out)
-            tensor2cv(inframes[1], out)
+            write2video(mix_frames(data['out'], g), out)
+            write2video(inframes[1], out)
     out.release()
     cv2.destroyAllWindows()
 
