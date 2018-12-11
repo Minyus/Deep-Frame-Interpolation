@@ -57,6 +57,15 @@ def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, un
         generator = GANGenerator(conv_layers_size=5)
         discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     print('Created models')
+    
+    print('Model Architecture Generator: ')
+    for name, param in generator.named_parameters():
+        if param.requires_grad:
+            print(name)
+    print('Model Architecture Discriminator: ')
+    for name, param in discriminator.named_parameters():
+        if param.requires_grad:
+            print(name)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if torch.cuda.device_count() >= 1:
