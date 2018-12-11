@@ -1,6 +1,7 @@
 .DS_Store
 datasets/
 experiments/
+frames/
 *.mp4
 *.zip
 models/pytorch-sepconv

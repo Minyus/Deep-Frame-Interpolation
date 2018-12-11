@@ -46,6 +46,7 @@ def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, un
     :param save_path: path to where to save model
     :return: saved models
     """
+    assert(!os.path.exists(save_path), 'Experiment folder already exists!')
     if save_every is None:
         save_every = epochs
     height, width = dataloader.dataset.getsize()
@@ -58,14 +59,14 @@ def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, un
         discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     print('Created models')
     
-    print('Model Architecture Generator: ')
-    for name, param in generator.named_parameters():
-        if param.requires_grad:
-            print(name)
-    print('Model Architecture Discriminator: ')
-    for name, param in discriminator.named_parameters():
-        if param.requires_grad:
-            print(name)
+#     print('Model Architecture Generator: ')
+#     for name, param in generator.named_parameters():
+#         if param.requires_grad:
+#             print(name)
+#     print('Model Architecture Discriminator: ')
+#     for name, param in discriminator.named_parameters():
+#         if param.requires_grad:
+#             print(name)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if torch.cuda.device_count() >= 1:
