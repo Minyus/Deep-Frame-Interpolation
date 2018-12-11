@@ -136,29 +136,29 @@ def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, un
                     print('Real images')
                     imshow(real_grid)
                     loss_file.append("epoch {} out of {}".format(epoch, epochs))
-                    loss_file.append("d_loss:{}, g_loss:{}".format(d_loss, g_loss))
+                    loss_file.append("discriminator loss:{}, generator loss:{}".format(d_loss, g_loss))
                     if supervised:
-                        loss_file.append("dg_loss:{}, ds_loss:{}".format(dg_loss, ds_loss))
-                    loss_file.append("dr:{}, dg:{}\n".format(dr, dg))
+                        loss_file.append("generator GAN loss:{}, supervised loss:{}".format(dg_loss, ds_loss))
+                    loss_file.append("discriminator mean real prediction:{}, mean fake prediction:{}\n".format(dr, dg))
                 pbar.update(1)
         loss_file.append('runtime: {}'.format(time.time() - start_time))
         for l in loss_file:
             print(l)
         if epoch % save_every == 0 and save_path is not None:
-            torch.save(generator, '{}/{}_Generator'.format(save_path, epoch))
-            torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epoch))
+            torch.save(generator.module.state_dict(), '{}/{}_Generator'.format(save_path, epoch))
+            torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epoch))
         with open('{}/stats.txt'.format(save_path),'a') as f:
             for l in loss_file:
                 f.write('{}\n'.format(l))
         loss_file = []
 
     if epochs % save_every != 0 and save_path is not None:
-        torch.save(generator, '{}/{}_Generator'.format(save_path, epochs))
-        torch.save(discriminator, '{}/{}_Discriminator'.format(save_path, epochs))
+        torch.save(generator.module.state_dict(), '{}/{}_Generator'.format(save_path, epochs))
+        torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epochs))
 
     return generator, discriminator
 
-def loss_G(d, g, g_optim, gen, real, supervised, lmd=0.00001):
+def loss_G(d, g, g_optim, gen, real, supervised, lmd=0.0001):
     loss = -torch.mean(F.logsigmoid(d(gen)))
     gen_loss, sup_loss = loss, None
     if supervised:

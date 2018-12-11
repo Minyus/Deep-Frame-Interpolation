@@ -3,3 +3,4 @@ torchvision
 scikit-video
 scikit-image
 opencv-python
+moviepy
