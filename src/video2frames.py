@@ -4,7 +4,7 @@ import sys
 
 def main():
     if len(sys.argv) != 3:
-        raise Exception('usage: python project1.py <video.mp4> <output folder>')
+        raise Exception('usage: python video2frames.py <video.mp4> <output folder>')
 
     infile, outfolder = sys.argv[1], sys.argv[2]
     filename = infile[infile.rfind('/') + 1:infile.find('.mp4')]
