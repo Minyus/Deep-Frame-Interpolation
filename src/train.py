@@ -13,6 +13,7 @@ sys.path.append("./models")
 import random
 from models.GAN_model import GANGenerator, GANDiscriminator
 from models.UNet_model import UNetGenerator, UNetDiscriminator
+from eval import evalGAN
 from tqdm import tqdm_notebook
 
 def imshow(img):
@@ -39,14 +40,14 @@ def init_weights(m):
             # print("after: {}".format(param.data[0]))
 
 
-def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, unet=True):
+def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supervised=True, unet=True):
     """
     :param epochs: # of epochs to run for
     :param datasetloader: dataloader of dataset we want to train on
     :param save_path: path to where to save model
     :return: saved models
     """
-    assert(!os.path.exists(save_path), 'Experiment folder already exists!')
+    assert(not os.path.exists(save_path), 'Experiment folder already exists!')
     if save_every is None:
         save_every = epochs
     height, width = dataloader.dataset.getsize()
@@ -142,11 +143,18 @@ def trainGAN(epochs, dataloader, save_path, save_every=None, supervised=True, un
                     loss_file.append("discriminator mean real prediction:{}, mean fake prediction:{}\n".format(dr, dg))
                 pbar.update(1)
         loss_file.append('runtime: {}'.format(time.time() - start_time))
-        for l in loss_file:
-            print(l)
+        
         if epoch % save_every == 0 and save_path is not None:
             torch.save(generator.module.state_dict(), '{}/{}_Generator'.format(save_path, epoch))
             torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epoch))
+            if valloader is not None: 
+                directory = '{}/{}'.format(save_path, epoch)
+                path = '{}/{}_Generator'.format(save_path, epoch)
+                valImageName = "{}/val.jpg".format(directory)
+                avg_psnr = evalGAN(valloader,load_path = path ,sampleImagesName=valImageName)
+                loss_file.append('Avg. PNSR on val:{:.4f} dB'.format(avg_psnr))
+        for l in loss_file:
+            print(l)
         with open('{}/stats.txt'.format(save_path),'a') as f:
             for l in loss_file:
                 f.write('{}\n'.format(l))
