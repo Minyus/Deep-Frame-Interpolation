@@ -47,7 +47,7 @@ def main():
         for i in range(0, len(dataset) - 2, 2):
             if i % 100 == 0:
                 print(i)
-            data = {f:dataset[i][f][None, :] for f in dataset[i]}
+            data = {f:dataset[i][f][None, :].type(dtype) for f in dataset[i]}
             inframes = (data['left'], data['right'])
             if i == 0:
                 write2video(inframes[0], out)
