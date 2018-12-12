@@ -40,7 +40,7 @@ def init_weights(m):
             # print("after: {}".format(param.data[0]))
 
 
-def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supervised=True, unet=True):
+def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supervised=True, unet=True,gan = True):
     """
     :param epochs: # of epochs to run for
     :param datasetloader: dataloader of dataset we want to train on
@@ -54,10 +54,12 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
     print('Video (h,w): ({}, {})'.format(height,width))
     if unet:
         generator = UNetGenerator()
-        discriminator = UNetDiscriminator(height=height, width=width, hidden_size=300)
+        if gan:
+            discriminator = UNetDiscriminator(height=height, width=width, hidden_size=300)
     else:
         generator = GANGenerator(conv_layers_size=5)
-        discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
+        if gan:
+            discriminator = GANDiscriminator(height=height, width=width, hidden_size=300)
     print('Created models')
     
 #     print('Model Architecture Generator: ')
@@ -71,24 +73,26 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if torch.cuda.device_count() >= 1:
-        discriminator = nn.DataParallel(discriminator)
+        if gan:
+            discriminator = nn.DataParallel(discriminator)
         generator = nn.DataParallel(generator)
         for gpu in range(torch.cuda.device_count()):
             print('GPU: {}, number: {}'.format(torch.cuda.get_device_name(gpu),gpu))
 
     generator.to(device)
-    discriminator.to(device)
+    if gan:
+        discriminator.to(device)
     # elif torch.cuda.is_available() and torch.cuda.device_count() == 1:
     #     discriminator = discriminator.cuda()
     #     generator = generator.cuda()
     #     device = torch.cuda.FloatTensor
 
-
-    discriminator.apply(init_weights)
+    if gan:
+        discriminator.apply(init_weights)
     generator.apply(init_weights)
     print('Initialized weights')
-
-    D_optimizer = optim.Adam(discriminator.parameters())
+    if gan:
+        D_optimizer = optim.Adam(discriminator.parameters())
     G_optimizer = optim.Adam(generator.parameters())
 
     criterion = nn.BCELoss()
@@ -120,8 +124,12 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
 #                 else:
 #                     g_loss = train_G(discriminator, G_optimizer, gen, criterion,device)
                 gen = generator(inframes)
-                g_loss, dg_loss, ds_loss = loss_G(discriminator, generator, G_optimizer, gen, real, supervised)
-                d_loss, dr, dg = loss_D(discriminator, D_optimizer, real, gen)
+                if gan:
+                    g_loss, dg_loss, ds_loss = loss_G(discriminator, generator, G_optimizer, gen, real, supervised)
+                    d_loss, dr, dg = loss_D(discriminator, D_optimizer, real, gen)
+                else: 
+                    g_loss = loss_S(G_optimizer,gen,real)
+                    
                 if index == len(dataloader) - 1:
                     N = gen.shape[0]
                     gen_cpu = gen.data.cpu()
@@ -137,20 +145,25 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
                     print('Real images')
                     imshow(real_grid)
                     loss_file.append("epoch {} out of {}".format(epoch, epochs))
-                    loss_file.append("discriminator loss:{}, generator loss:{}".format(d_loss, g_loss))
-                    if supervised:
+                    if gan:
+                        loss_file.append("discriminator loss:{}, generator loss:{}".format(d_loss, g_loss))
+                    else: 
+                        loss_file.append("generator loss:{}".format(g_loss))
+                    if supervised and gan:
                         loss_file.append("generator GAN loss:{}, supervised loss:{}".format(dg_loss, ds_loss))
-                    loss_file.append("discriminator mean real prediction:{}, mean fake prediction:{}\n".format(dr, dg))
+                    if gan:
+                        loss_file.append("discriminator mean real prediction:{}, mean fake prediction:{}\n".format(dr, dg))      
                 pbar.update(1)
         loss_file.append('runtime: {}'.format(time.time() - start_time))
         
         if epoch % save_every == 0 and save_path is not None:
             torch.save(generator.module.state_dict(), '{}/{}_Generator'.format(save_path, epoch))
-            torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epoch))
+            if gan:
+                torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epoch))
             if valloader is not None: 
                 directory = '{}/{}'.format(save_path, epoch)
                 path = '{}/{}_Generator'.format(save_path, epoch)
-                valImageName = "{}/val.jpg".format(directory)
+                valImageName = "{}/val".format(directory)
                 avg_psnr = evalGAN(valloader,load_path = path ,sampleImagesName=valImageName)
                 loss_file.append('Avg. PNSR on val:{:.4f} dB'.format(avg_psnr))
         for l in loss_file:
@@ -162,9 +175,19 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
 
     if epochs % save_every != 0 and save_path is not None:
         torch.save(generator.module.state_dict(), '{}/{}_Generator'.format(save_path, epochs))
-        torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epochs))
+        if gan:
+            torch.save(discriminator.module.state_dict(), '{}/{}_Discriminator'.format(save_path, epochs))
+    if gan:
+        return generator, discriminator
+    else:
+        return generator
 
-    return generator, discriminator
+def loss_S(g_optim,gen,real):
+    loss = torch.nn.functional.smooth_l1_loss(gen,real)
+    g_optim.zero_grad()
+    loss.backward()
+    g_optim.step()
+    return loss
 
 def loss_G(d, g, g_optim, gen, real, supervised, lmd=0.0001):
     loss = -torch.mean(F.logsigmoid(d(gen)))
