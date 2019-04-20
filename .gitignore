@@ -1,10 +1,3 @@
-.DS_Store
-datasets/
-experiments/
-frames/
-*.mp4
-*.zip
-models/pytorch-sepconv
 .idea/
 .ipynb_checkpoints
 __pycache__
