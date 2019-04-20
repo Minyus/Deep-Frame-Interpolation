@@ -13,7 +13,7 @@ sys.path.append("./models")
 import random
 from models.GAN_model import GANGenerator, GANDiscriminator
 from models.UNet_model import UNetGenerator, UNetDiscriminator
-from eval import evalGAN
+from src.eval import evalGAN
 from tqdm import tqdm_notebook
 
 def imshow(img):
