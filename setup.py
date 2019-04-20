@@ -6,4 +6,5 @@ setup(name='deepframeinterpolation',
       author='Arjun-Arora', 
       author_email='me@GitHub.com', 
       packages=['src','models','datasets', 'datasets/frames/train','datasets/frames/test', 'datasets/frames/val'], 
-      zip_safe=False)
+      zip_safe=False,
+      include_package_data=True)
