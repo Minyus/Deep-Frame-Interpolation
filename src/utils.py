@@ -30,12 +30,12 @@ class VideoInterpTripletsDataset(Dataset):
                 if frames[file] < num:
                     frames[file] = num
             self.filenames = [filename for filename in frames]
-            print('Filenames')
-            print(self.filenames)
+            #print('Filenames')
+            #print(self.filenames)
             frame = misc.imread('{}/{}-{}.jpg'\
                 .format(self.directory, self.filenames[0], 0))
             self.height, self.width, _ = frame.shape
-            print('Frame read, (h,w) is ({},{})'.format(self.height, self.width))
+            #print('Frame read, (h,w) is ({},{})'.format(self.height, self.width))
             self.frames = [frames[filename] - 2 for filename in self.filenames]
         else:
             self.filenames = [filename for filename in glob.glob(os.path.join(directory,'*.mp4'))]

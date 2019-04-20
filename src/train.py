@@ -47,7 +47,7 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
     :param save_path: path to where to save model
     :return: saved models
     """
-    assert(not os.path.exists(save_path), 'Experiment folder already exists!')
+    #assert not os.path.exists(save_path), 'Experiment folder already exists!'
     if save_every is None:
         save_every = epochs
     height, width = dataloader.dataset.getsize()
@@ -164,7 +164,7 @@ def trainGAN(epochs, dataloader, save_path, save_every=None,valloader=None, supe
                 directory = '{}/{}'.format(save_path, epoch)
                 path = '{}/{}_Generator'.format(save_path, epoch)
                 valImageName = "{}/val".format(directory)
-                avg_psnr = evalGAN(valloader,load_path = path ,sampleImagesName=valImageName)
+                avg_psnr = evalGAN(valloader,load_path = path ,sampleImagesName=valImageName, unet=unet)
                 loss_file.append('Avg. PNSR on val:{:.4f} dB'.format(avg_psnr))
         for l in loss_file:
             print(l)
